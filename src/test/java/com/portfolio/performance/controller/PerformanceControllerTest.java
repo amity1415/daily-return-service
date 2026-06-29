@@ -1,12 +1,16 @@
 package com.portfolio.performance.controller;
 
+import com.portfolio.performance.repository.DeduplicationStore;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -19,6 +23,15 @@ class PerformanceControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private DeduplicationStore deduplicationStore;
+
+    @BeforeEach
+    void resetDeduplicationCache() {
+        // The store is a singleton shared across test methods; isolate each test.
+        deduplicationStore.clear();
+    }
 
     @Test
     void validInput_returns200_withStatusValid() throws Exception {
@@ -97,6 +110,69 @@ class PerformanceControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("REVIEW_REQUIRED"))
                 .andExpect(jsonPath("$.reasons", hasSize(1)));
+    }
+
+    @Test
+    void duplicateRequest_returnsSameResponse_withoutRecomputing() throws Exception {
+        String body = """
+                {
+                  "portfolioId": "PORT-DUP",
+                  "valuationDate": "2026-06-29",
+                  "beginMarketValue": 1000000,
+                  "endMarketValue": 1035000,
+                  "netCashFlow": 10000,
+                  "benchmarkReturnPct": 1.8,
+                  "currency": "USD",
+                  "requestedBy": "analyst.jane"
+                }
+                """;
+
+        MvcResult first = mockMvc.perform(post("/api/performance/daily-return")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        MvcResult second = mockMvc.perform(post("/api/performance/daily-return")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String firstBody = first.getResponse().getContentAsString();
+        String secondBody = second.getResponse().getContentAsString();
+
+        // Byte-for-byte identical — including processedAt — proves the second call returned the
+        // cached response rather than recomputing (a recompute would produce a new timestamp).
+        assertThat(secondBody).isEqualTo(firstBody);
+    }
+
+    @Test
+    void duplicateOfInvalidInput_returnsSameInvalidResponse() throws Exception {
+        String body = """
+                {
+                  "portfolioId": "PORT-DUP-INVALID",
+                  "valuationDate": "2026-06-29",
+                  "beginMarketValue": -1,
+                  "endMarketValue": 100,
+                  "netCashFlow": 0,
+                  "benchmarkReturnPct": 1.0,
+                  "currency": "USD",
+                  "requestedBy": "analyst.jane"
+                }
+                """;
+
+        String firstBody = mockMvc.perform(post("/api/performance/daily-return")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("INVALID_INPUT"))
+                .andReturn().getResponse().getContentAsString();
+
+        String secondBody = mockMvc.perform(post("/api/performance/daily-return")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("INVALID_INPUT"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(secondBody).isEqualTo(firstBody);
     }
 
     @Test
