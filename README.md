@@ -61,9 +61,39 @@ curl -s -X POST http://localhost:8081/api/performance/daily-return \
   "excessReturnPct": 0.7,
   "status": "VALID",
   "reasons": [],
+  "errors": [],
   "processedAt": "2026-06-29T12:00:00Z"
 }
 ```
+
+### Example INVALID_INPUT response
+
+Validation failures still return **HTTP 200**. `reasons` carries human-readable messages, and the
+parallel `errors` array names the offending field for each one (machine-readable). Both arrays are
+always present — they are `[]` for VALID and REVIEW_REQUIRED results.
+
+```json
+{
+  "portfolioId": "PORT-001",
+  "valuationDate": "2026-06-29",
+  "portfolioReturnPct": 0,
+  "benchmarkReturnPct": 1.8,
+  "excessReturnPct": 0,
+  "status": "INVALID_INPUT",
+  "reasons": [
+    "beginMarketValue must not be negative",
+    "currency is required and must not be blank"
+  ],
+  "errors": [
+    { "field": "beginMarketValue", "message": "beginMarketValue must not be negative" },
+    { "field": "currency", "message": "currency is required and must not be blank" }
+  ],
+  "processedAt": "2026-06-29T12:00:00Z"
+}
+```
+
+For a malformed/unparseable body, the error is attributed to the offending field when it can be
+identified (e.g. `"field": "valuationDate"`); for a wholly unparseable body, `"field"` is `null`.
 
 ### Business rules
 
@@ -91,9 +121,13 @@ from the browser without reading the code.
 
 ## Assumptions
 
-- **Always HTTP 200.** Every outcome — including invalid input — is returned as 200 with a `status`
-  and `reasons`, rather than a 4xx. This is an intentional contract choice so clients branch on
-  `status`, not HTTP codes.
+- **Always HTTP 200.** Every outcome — including invalid input — is returned as 200 with a `status`,
+  `reasons`, and `errors`, rather than a 4xx. This is an intentional contract choice so clients branch
+  on `status`, not HTTP codes.
+- **Errors are field-attributed.** Alongside the human-readable `reasons`, the response carries a
+  machine-readable `errors` array (`{field, message}` per entry). Both `reasons` and `errors` are
+  always present, and are `[]` for VALID and REVIEW_REQUIRED. Field attribution covers the existing
+  validation rules; it does not add new presence/type checks for every field.
 - **Idempotency is in-memory and single-instance.** The dedup cache is a `ConcurrentHashMap`, scoped
   to the JVM lifetime, with no eviction. This satisfies the "no database needed" requirement; a
   multi-instance deployment would back the same `DeduplicationStore` interface with a shared store

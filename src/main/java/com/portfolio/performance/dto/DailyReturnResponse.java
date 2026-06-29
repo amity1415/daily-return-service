@@ -22,7 +22,9 @@ import java.util.List;
  * @param benchmarkReturnPct the benchmark's daily return, as a percentage (echoed from the request)
  * @param excessReturnPct    portfolio return minus benchmark return (0 until implemented)
  * @param status             the decision for this request
- * @param reasons            explanations for the status (empty when VALID)
+ * @param reasons            human-readable explanations for the status (empty when VALID)
+ * @param errors             field-attributed validation errors (empty unless status is INVALID_INPUT);
+ *                           each entry names the offending field and the same message found in reasons
  * @param processedAt        ISO-8601 timestamp, with timezone offset, of when the result was produced
  */
 @Schema(description = "Daily return summary and status decision.")
@@ -51,6 +53,8 @@ public record DailyReturnResponse(
 
         @Schema(example = "[]")
         List<String> reasons,
+
+        List<FieldError> errors,
 
         @Schema(example = "2026-06-29T12:00:00Z")
         String processedAt

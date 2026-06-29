@@ -196,7 +196,10 @@ class PerformanceControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("INVALID_INPUT"))
                 .andExpect(jsonPath("$.reasons", hasSize(1)))
-                .andExpect(jsonPath("$.reasons[0]", containsString("beginMarketValue")));
+                .andExpect(jsonPath("$.reasons[0]", containsString("beginMarketValue")))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].field").value("beginMarketValue"))
+                .andExpect(jsonPath("$.errors[0].message", containsString("beginMarketValue")));
     }
 
     @Test
@@ -219,7 +222,8 @@ class PerformanceControllerTest {
                         .content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("INVALID_INPUT"))
-                .andExpect(jsonPath("$.reasons[0]", containsString("currency")));
+                .andExpect(jsonPath("$.reasons[0]", containsString("currency")))
+                .andExpect(jsonPath("$.errors[0].field").value("currency"));
     }
 
     @Test
@@ -255,7 +259,8 @@ class PerformanceControllerTest {
                         .content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("INVALID_INPUT"))
-                .andExpect(jsonPath("$.reasons[0]", containsString("parsed")));
+                .andExpect(jsonPath("$.reasons[0]", containsString("parsed")))
+                .andExpect(jsonPath("$.errors[0].field").value("valuationDate"));
     }
 
     @Test

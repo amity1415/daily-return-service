@@ -18,7 +18,7 @@ class InMemoryDeduplicationStoreTest {
     private DailyReturnResponse sampleResponse(String id) {
         return new DailyReturnResponse(id, LocalDate.of(2026, 6, 29),
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                ReturnStatus.VALID, List.of(), "2026-06-29T00:00:00Z");
+                ReturnStatus.VALID, List.of(), List.of(), "2026-06-29T00:00:00Z");
     }
 
     @Test

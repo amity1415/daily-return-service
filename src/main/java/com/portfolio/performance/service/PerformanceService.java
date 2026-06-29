@@ -4,6 +4,7 @@ import com.portfolio.performance.domain.CalculationResult;
 import com.portfolio.performance.domain.ReturnStatus;
 import com.portfolio.performance.dto.DailyReturnRequest;
 import com.portfolio.performance.dto.DailyReturnResponse;
+import com.portfolio.performance.dto.FieldError;
 import com.portfolio.performance.repository.DeduplicationKey;
 import com.portfolio.performance.repository.DeduplicationResult;
 import com.portfolio.performance.repository.DeduplicationStore;
@@ -79,10 +80,11 @@ public class PerformanceService {
 
         String processedAt = OffsetDateTime.now(clock).toString();
 
-        List<String> validationReasons = validator.validate(request);
-        if (!validationReasons.isEmpty()) {
-            log.warn("event=VALIDATION_FAILED correlationId={} portfolioId={} reasons={}",
-                    correlationId, request.portfolioId(), validationReasons);
+        List<FieldError> validationErrors = validator.validate(request);
+        if (!validationErrors.isEmpty()) {
+            List<String> reasons = validationErrors.stream().map(FieldError::message).toList();
+            log.warn("event=VALIDATION_FAILED correlationId={} portfolioId={} errors={}",
+                    correlationId, request.portfolioId(), validationErrors);
             return new DailyReturnResponse(
                     request.portfolioId(),
                     request.valuationDate(),
@@ -90,7 +92,8 @@ public class PerformanceService {
                     request.benchmarkReturnPct(),
                     BigDecimal.ZERO,
                     ReturnStatus.INVALID_INPUT,
-                    validationReasons,
+                    reasons,
+                    validationErrors,
                     processedAt);
         }
 
@@ -106,6 +109,7 @@ public class PerformanceService {
                 result.excessReturnPct(),
                 result.status(),
                 result.reasons(),
+                List.of(),
                 processedAt);
     }
 }

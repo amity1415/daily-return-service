@@ -1,6 +1,7 @@
 package com.portfolio.performance.validation;
 
 import com.portfolio.performance.dto.DailyReturnRequest;
+import com.portfolio.performance.dto.FieldError;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -8,6 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 class DailyReturnValidatorTest {
 
@@ -26,51 +28,65 @@ class DailyReturnValidatorTest {
     }
 
     @Test
-    void validRequest_hasNoReasons() {
-        List<String> reasons = validator.validate(
+    void validRequest_hasNoErrors() {
+        List<FieldError> errors = validator.validate(
                 request(new BigDecimal("1000000"), new BigDecimal("1012500"), "USD"));
-        assertThat(reasons).isEmpty();
+        assertThat(errors).isEmpty();
     }
 
     @Test
-    void negativeBeginMarketValue_isReported() {
-        List<String> reasons = validator.validate(
+    void negativeBeginMarketValue_isAttributedToBeginField() {
+        List<FieldError> errors = validator.validate(
                 request(new BigDecimal("-1"), new BigDecimal("100"), "USD"));
-        assertThat(reasons).contains(DailyReturnValidator.REASON_BEGIN_NEGATIVE);
+        assertThat(errors).extracting(FieldError::field, FieldError::message)
+                .contains(tuple(DailyReturnValidator.FIELD_BEGIN, DailyReturnValidator.REASON_BEGIN_NEGATIVE));
     }
 
     @Test
-    void negativeEndMarketValue_isReported() {
-        List<String> reasons = validator.validate(
+    void negativeEndMarketValue_isAttributedToEndField() {
+        List<FieldError> errors = validator.validate(
                 request(new BigDecimal("100"), new BigDecimal("-1"), "USD"));
-        assertThat(reasons).contains(DailyReturnValidator.REASON_END_NEGATIVE);
+        assertThat(errors).extracting(FieldError::field, FieldError::message)
+                .contains(tuple(DailyReturnValidator.FIELD_END, DailyReturnValidator.REASON_END_NEGATIVE));
     }
 
     @Test
-    void blankCurrency_isReported() {
-        List<String> reasons = validator.validate(
+    void blankCurrency_isAttributedToCurrencyField() {
+        List<FieldError> errors = validator.validate(
                 request(new BigDecimal("100"), new BigDecimal("100"), "  "));
-        assertThat(reasons).contains(DailyReturnValidator.REASON_CURRENCY_REQUIRED);
+        assertThat(errors).extracting(FieldError::field, FieldError::message)
+                .contains(tuple(DailyReturnValidator.FIELD_CURRENCY, DailyReturnValidator.REASON_CURRENCY_REQUIRED));
     }
 
     @Test
-    void nullCurrency_isReported() {
-        List<String> reasons = validator.validate(
+    void nullCurrency_isAttributedToCurrencyField() {
+        List<FieldError> errors = validator.validate(
                 request(new BigDecimal("100"), new BigDecimal("100"), null));
-        assertThat(reasons).contains(DailyReturnValidator.REASON_CURRENCY_REQUIRED);
+        assertThat(errors).extracting(FieldError::field)
+                .contains(DailyReturnValidator.FIELD_CURRENCY);
     }
 
     @Test
-    void zeroBeginWithNonZeroEnd_isReported() {
-        List<String> reasons = validator.validate(
+    void zeroBeginWithNonZeroEnd_isAttributedToBeginField() {
+        List<FieldError> errors = validator.validate(
                 request(BigDecimal.ZERO, new BigDecimal("100"), "USD"));
-        assertThat(reasons).contains(DailyReturnValidator.REASON_ZERO_BEGIN_NONZERO_END);
+        assertThat(errors).extracting(FieldError::field, FieldError::message)
+                .contains(tuple(DailyReturnValidator.FIELD_BEGIN, DailyReturnValidator.REASON_ZERO_BEGIN_NONZERO_END));
     }
 
     @Test
     void zeroBeginWithZeroEnd_isValid() {
-        List<String> reasons = validator.validate(
+        List<FieldError> errors = validator.validate(
                 request(BigDecimal.ZERO, BigDecimal.ZERO, "USD"));
-        assertThat(reasons).isEmpty();
+        assertThat(errors).isEmpty();
+    }
+
+    @Test
+    void multipleViolations_areAllReported() {
+        // Negative begin AND blank currency.
+        List<FieldError> errors = validator.validate(
+                request(new BigDecimal("-5"), new BigDecimal("100"), ""));
+        assertThat(errors).extracting(FieldError::field)
+                .contains(DailyReturnValidator.FIELD_BEGIN, DailyReturnValidator.FIELD_CURRENCY);
     }
 }
