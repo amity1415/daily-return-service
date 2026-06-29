@@ -1,5 +1,6 @@
 package com.portfolio.performance.service;
 
+import com.portfolio.performance.domain.CalculationResult;
 import com.portfolio.performance.domain.ReturnStatus;
 import com.portfolio.performance.dto.DailyReturnRequest;
 import com.portfolio.performance.dto.DailyReturnResponse;
@@ -12,48 +13,50 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
- * Business layer for daily return processing.
- *
- * <p>Currently it validates the request and decides a status. The return percentages are still
- * placeholders ({@code 0}); the calculation step will replace the {@link ReturnStatus#VALID} branch
- * with real figures and may also produce {@link ReturnStatus#REVIEW_REQUIRED}.
+ * Orchestrates a daily return request: validate, then (if valid) calculate, and assemble the
+ * response. The numeric work lives in {@link PerformanceCalculator} and the input rules in
+ * {@link DailyReturnValidator}; this class only coordinates them and stamps the response.
  */
 @Service
 public class PerformanceService {
 
     private final DailyReturnValidator validator;
+    private final PerformanceCalculator calculator;
     private final Clock clock;
 
-    public PerformanceService(DailyReturnValidator validator, Clock clock) {
+    public PerformanceService(DailyReturnValidator validator,
+                              PerformanceCalculator calculator,
+                              Clock clock) {
         this.validator = validator;
+        this.calculator = calculator;
         this.clock = clock;
     }
 
     public DailyReturnResponse process(DailyReturnRequest request) {
         String processedAt = OffsetDateTime.now(clock).toString();
 
-        List<String> reasons = validator.validate(request);
-        if (!reasons.isEmpty()) {
-            return buildResponse(request, ReturnStatus.INVALID_INPUT, reasons, processedAt);
+        List<String> validationReasons = validator.validate(request);
+        if (!validationReasons.isEmpty()) {
+            return new DailyReturnResponse(
+                    request.portfolioId(),
+                    request.valuationDate(),
+                    BigDecimal.ZERO,
+                    request.benchmarkReturnPct(),
+                    BigDecimal.ZERO,
+                    ReturnStatus.INVALID_INPUT,
+                    validationReasons,
+                    processedAt);
         }
 
-        // Passed all checks. Calculation comes next; status is VALID for now.
-        return buildResponse(request, ReturnStatus.VALID, List.of(), processedAt);
-    }
-
-    private DailyReturnResponse buildResponse(DailyReturnRequest request,
-                                              ReturnStatus status,
-                                              List<String> reasons,
-                                              String processedAt) {
+        CalculationResult result = calculator.calculate(request);
         return new DailyReturnResponse(
                 request.portfolioId(),
                 request.valuationDate(),
-                BigDecimal.ZERO,          // portfolioReturnPct — placeholder
+                result.portfolioReturnPct(),
                 request.benchmarkReturnPct(),
-                BigDecimal.ZERO,          // excessReturnPct — placeholder
-                status,
-                reasons,
-                processedAt
-        );
+                result.excessReturnPct(),
+                result.status(),
+                result.reasons(),
+                processedAt);
     }
 }

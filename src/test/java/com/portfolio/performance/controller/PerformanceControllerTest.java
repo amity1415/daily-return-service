@@ -44,9 +44,59 @@ class PerformanceControllerTest {
                 .andExpect(jsonPath("$.reasons").isEmpty())
                 .andExpect(jsonPath("$.portfolioId").value("PORT-001"))
                 .andExpect(jsonPath("$.valuationDate").value("2026-06-29"))
-                .andExpect(jsonPath("$.portfolioReturnPct").value(0))
-                .andExpect(jsonPath("$.excessReturnPct").value(0))
+                .andExpect(jsonPath("$.portfolioReturnPct").value(1.25))
+                .andExpect(jsonPath("$.excessReturnPct").value(0.15))
                 .andExpect(jsonPath("$.processedAt").exists());
+    }
+
+    @Test
+    void goalExample_returns200_withCalculatedFigures() throws Exception {
+        String body = """
+                {
+                  "portfolioId": "PORT-001",
+                  "valuationDate": "2026-06-29",
+                  "beginMarketValue": 1000000,
+                  "endMarketValue": 1035000,
+                  "netCashFlow": 10000,
+                  "benchmarkReturnPct": 1.8,
+                  "currency": "USD",
+                  "requestedBy": "analyst.jane"
+                }
+                """;
+
+        mockMvc.perform(post("/api/performance/daily-return")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("VALID"))
+                .andExpect(jsonPath("$.reasons").isEmpty())
+                .andExpect(jsonPath("$.portfolioReturnPct").value(2.5))
+                .andExpect(jsonPath("$.excessReturnPct").value(0.7))
+                .andExpect(jsonPath("$.benchmarkReturnPct").value(1.8));
+    }
+
+    @Test
+    void reviewRequired_returns200_withReason() throws Exception {
+        // Return ~10% vs benchmark 1% -> drift > 5%.
+        String body = """
+                {
+                  "portfolioId": "PORT-001",
+                  "valuationDate": "2026-06-29",
+                  "beginMarketValue": 1000000,
+                  "endMarketValue": 1100000,
+                  "netCashFlow": 0,
+                  "benchmarkReturnPct": 1.0,
+                  "currency": "USD",
+                  "requestedBy": "analyst.jane"
+                }
+                """;
+
+        mockMvc.perform(post("/api/performance/daily-return")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REVIEW_REQUIRED"))
+                .andExpect(jsonPath("$.reasons", hasSize(1)));
     }
 
     @Test
