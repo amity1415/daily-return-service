@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: daily-return-service
+  jackson:
+    # Don't serialize null fields, and emit BigDecimal as plain decimals (e.g. 2.5, not 2.5E0).
+    default-property-inclusion: non_null
+    serialization:
+      write-bigdecimal-as-plain: true
+
+server:
+  port: 8081
+  error:
+    # Keep error responses clean; never leak internals to clients.
+    include-message: never
+    include-stacktrace: never
+
+# Expose a minimal, production-sensible set of actuator endpoints.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.portfolio.performance: INFO
