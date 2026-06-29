@@ -5,7 +5,6 @@ import com.portfolio.performance.dto.DailyReturnResponse;
 import com.portfolio.performance.service.PerformanceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,14 +29,14 @@ public class PerformanceController {
 
     @Operation(
             summary = "Calculate a portfolio's daily return summary",
-            description = "Accepts the day's valuation inputs and returns the daily return summary "
-                    + "with a tolerance status decision."
+            description = "Accepts the day's valuation inputs and always responds 200. The outcome is "
+                    + "carried in the body: VALID, or INVALID_INPUT with explanatory reasons."
     )
     @PostMapping(
             path = "/daily-return",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<DailyReturnResponse> dailyReturn(@Valid @RequestBody DailyReturnRequest request) {
+    public ResponseEntity<DailyReturnResponse> dailyReturn(@RequestBody DailyReturnRequest request) {
         return ResponseEntity.ok(performanceService.process(request));
     }
 }

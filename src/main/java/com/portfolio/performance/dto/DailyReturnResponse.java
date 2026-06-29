@@ -4,41 +4,49 @@ import com.portfolio.performance.domain.ReturnStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 
 /**
- * Result of a daily return calculation.
+ * Result of processing a daily return request.
  *
- * <p>The numeric percentage fields are populated once the calculation logic is implemented; for now
- * the service returns a placeholder with a status only.
+ * <p>The percentage fields are placeholders for now ({@code 0}); the actual return calculation is a
+ * later step. The {@code status} + {@code reasons} pair always communicates the outcome: an empty
+ * {@code reasons} list accompanies a {@code VALID} result, while {@code INVALID_INPUT} carries one
+ * or more human-readable explanations.
  *
  * @param portfolioId        echoes the requested portfolio
- * @param portfolioReturnPct the portfolio's daily return, as a percentage
- * @param benchmarkReturnPct the benchmark's daily return, as a percentage
- * @param excessReturnPct    portfolio return minus benchmark return, as a percentage
- * @param status             the tolerance decision for this result
- * @param message            human-readable summary of the outcome
- * @param processedAt        ISO-8601 timestamp of when the result was produced
+ * @param valuationDate      echoes the requested valuation date
+ * @param portfolioReturnPct the portfolio's daily return, as a percentage (0 until implemented)
+ * @param benchmarkReturnPct the benchmark's daily return, as a percentage (echoed from the request)
+ * @param excessReturnPct    portfolio return minus benchmark return (0 until implemented)
+ * @param status             the decision for this request
+ * @param reasons            explanations for the status (empty when VALID)
+ * @param processedAt        ISO-8601 timestamp, with timezone offset, of when the result was produced
  */
-@Schema(description = "Daily return summary and tolerance decision.")
+@Schema(description = "Daily return summary and status decision.")
 public record DailyReturnResponse(
 
         @Schema(example = "PORT-001")
         String portfolioId,
 
-        @Schema(example = "1.25")
+        @Schema(example = "2026-06-29")
+        LocalDate valuationDate,
+
+        @Schema(example = "0")
         BigDecimal portfolioReturnPct,
 
         @Schema(example = "1.10")
         BigDecimal benchmarkReturnPct,
 
-        @Schema(example = "0.15")
+        @Schema(example = "0")
         BigDecimal excessReturnPct,
 
-        @Schema(example = "WITHIN_TOLERANCE")
+        @Schema(example = "VALID")
         ReturnStatus status,
 
-        @Schema(example = "Endpoint reachable. Calculation not yet implemented.")
-        String message,
+        @Schema(example = "[]")
+        List<String> reasons,
 
         @Schema(example = "2026-06-29T12:00:00Z")
         String processedAt

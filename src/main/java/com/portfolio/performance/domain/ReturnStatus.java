@@ -1,16 +1,16 @@
 package com.portfolio.performance.domain;
 
 /**
- * Outcome of evaluating a daily return against acceptable tolerance.
+ * Outcome of processing a daily return request.
  */
 public enum ReturnStatus {
 
-    /** Return computed and within tolerance. */
-    WITHIN_TOLERANCE,
+    /** Input passed all checks; the result is usable. */
+    VALID,
 
-    /** Return computed but outside tolerance — needs human review. */
+    /** Result computed but outside acceptable tolerance — needs human review. */
     REVIEW_REQUIRED,
 
-    /** Request could not be evaluated because the input was invalid. */
+    /** Request could not be processed because the input was invalid. */
     INVALID_INPUT
 }

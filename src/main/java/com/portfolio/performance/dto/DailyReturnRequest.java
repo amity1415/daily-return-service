@@ -1,8 +1,6 @@
 package com.portfolio.performance.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -10,9 +8,10 @@ import java.time.LocalDate;
 /**
  * Inbound request for a daily return calculation.
  *
- * <p>Validation here covers only <em>structural</em> requirements (presence of the fields needed to
- * identify and frame the calculation). Business rules — e.g. whether market values are positive or
- * the currency is supported — are deliberately left to the service/calculation layer.
+ * <p>The fields are intentionally <em>not</em> annotated with bean-validation constraints. The
+ * contract requires that input problems surface as an HTTP 200 response with
+ * {@code status = INVALID_INPUT} and an explanatory reason, rather than a 400. That logic lives in
+ * {@link com.portfolio.performance.validation.DailyReturnValidator}.
  *
  * @param portfolioId        identifier of the portfolio being valued
  * @param valuationDate      the date the valuation applies to (ISO-8601, e.g. 2026-06-29)
@@ -27,34 +26,27 @@ import java.time.LocalDate;
 public record DailyReturnRequest(
 
         @Schema(example = "PORT-001")
-        @NotBlank
         String portfolioId,
 
         @Schema(example = "2026-06-29")
-        @NotNull
         LocalDate valuationDate,
 
         @Schema(example = "1000000.00")
-        @NotNull
         BigDecimal beginMarketValue,
 
         @Schema(example = "1012500.00")
-        @NotNull
         BigDecimal endMarketValue,
 
         @Schema(example = "0.00")
-        @NotNull
         BigDecimal netCashFlow,
 
         @Schema(example = "1.10")
         BigDecimal benchmarkReturnPct,
 
         @Schema(example = "USD")
-        @NotBlank
         String currency,
 
         @Schema(example = "analyst.jane")
-        @NotBlank
         String requestedBy
 ) {
 }
