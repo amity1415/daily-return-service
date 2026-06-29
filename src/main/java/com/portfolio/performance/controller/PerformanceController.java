@@ -29,8 +29,18 @@ public class PerformanceController {
 
     @Operation(
             summary = "Calculate a portfolio's daily return summary",
-            description = "Accepts the day's valuation inputs and always responds 200. The outcome is "
-                    + "carried in the body: VALID, or INVALID_INPUT with explanatory reasons."
+            description = """
+                    Accepts the day's valuation inputs (market values, cash flow, benchmark) and \
+                    returns the daily return summary with a status decision. The endpoint always \
+                    responds with HTTP 200; the outcome is carried in the body:
+                    - VALID — input passed all checks; returns portfolioReturnPct and excessReturnPct.
+                    - REVIEW_REQUIRED — computed, but benchmark drift > 5% or cash flow > 20% of \
+                    begin market value; see reasons.
+                    - INVALID_INPUT — input failed validation (e.g. negative market value, blank \
+                    currency); see reasons.
+
+                    Idempotent on portfolioId + valuationDate: a repeated request returns the \
+                    original response without recalculating."""
     )
     @PostMapping(
             path = "/daily-return",

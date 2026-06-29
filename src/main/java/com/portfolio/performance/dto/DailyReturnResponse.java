@@ -1,5 +1,6 @@
 package com.portfolio.performance.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.portfolio.performance.domain.ReturnStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -25,6 +26,9 @@ import java.util.List;
  * @param processedAt        ISO-8601 timestamp, with timezone offset, of when the result was produced
  */
 @Schema(description = "Daily return summary and status decision.")
+// Always emit all eight fields, even when null, overriding the global non_null setting so the
+// response shape is stable and contract-conformant regardless of which inputs were supplied.
+@JsonInclude(JsonInclude.Include.ALWAYS)
 public record DailyReturnResponse(
 
         @Schema(example = "PORT-001")
